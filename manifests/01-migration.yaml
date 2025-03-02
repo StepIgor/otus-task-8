@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrations
+spec:
+  completions: 1
+  parallelism: 1
+  template:
+    spec:
+      containers:
+      - name: migrate
+        image: postgres:15-alpine
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-password
+              key: POSTGRES_PASSWORD
+        command:
+        - /bin/bash
+        - -c
+        - |
+          declare -A migrations
+          migrations[authpostgresql]="
+          CREATE TABLE IF NOT EXISTS users (
+            ID INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            Name VARCHAR(64) UNIQUE,
+            Password VARCHAR(512) NOT NULL
+          );"
+          migrations[orderspostgresql]="
+          CREATE TABLE IF NOT EXISTS orders (
+            ID INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            UserID INT NOT NULL,
+            GoodID INT NOT NULL,
+            DeliveryDate DATE NOT NULL,
+            DeliveryHour INT NOT NULL,
+            Status VARCHAR(16) NOT NULL
+          );"
+          migrations[goodspostgresql]="
+          CREATE TABLE IF NOT EXISTS goods (
+            ID INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            Name VARCHAR(128) NOT NULL,
+            Price INT NOT NULL,
+            OccupierID INT
+          );"
+          migrations[billingpostgresql]="
+          CREATE TABLE IF NOT EXISTS accounts (
+            UserID INT NOT NULL,
+            Amount INT NOT NULL
+          );"
+          migrations[courierpostgresql]="
+          CREATE TABLE IF NOT EXISTS requests (
+            OrderID INT NOT NULL,
+            DeliveryDate DATE NOT NULL,
+            DeliveryHour INT NOT NULL
+          );"
+          for host in "${!migrations[@]}"; do
+            sql="${migrations[$host]}"
+            psql -h $host -U postgres -d db -c "$sql"
+          done
+      restartPolicy: OnFailure
