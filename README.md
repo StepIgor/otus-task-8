@@ -8,11 +8,11 @@
 **Порядок установки** (предлагается default namespace, однако можно указать и свой).
 1. Разворачиваем PostgreSQL (5 шт., по одному на каждый сервис):
    ```
-   helm install authpostgresql bitnami/postgresql -f values/postgre_values.yaml
-   helm install billingpostgresql bitnami/postgresql -f values/postgre_values.yaml
-   helm install orderspostgresql bitnami/postgresql -f values/postgre_values.yaml
-   helm install goodspostgresql bitnami/postgresql -f values/postgre_values.yaml
-   helm install courierpostgresql bitnami/postgresql -f values/postgre_values.yaml
+   helm install authpostgresql bitnami/postgresql -f values/postgresql_values.yaml
+   helm install billingpostgresql bitnami/postgresql -f values/postgresql_values.yaml
+   helm install orderspostgresql bitnami/postgresql -f values/postgresql_values.yaml
+   helm install goodspostgresql bitnami/postgresql -f values/postgresql_values.yaml
+   helm install courierpostgresql bitnami/postgresql -f values/postgresql_values.yaml
    ```
 2. Устанавливаем RabbitMQ:
    ```
