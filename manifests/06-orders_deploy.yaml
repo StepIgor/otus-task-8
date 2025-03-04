@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orders-deploy
+  template:
+    metadata:
+      labels:
+        app: orders-deploy
+    spec:
+      containers:
+      - name: orders-deploy
+        image: stepigor/ot8orders:arm
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: DB_HOST
+        - name: DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: DB_USER
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: DB_NAME
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: DB_PORT
+        - name: APP_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: APP_PORT
+        - name: JWT_SECRET
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: JWT_SECRET
+        - name: DB_PSWD
+          valueFrom:
+            secretKeyRef:
+              name: db-password
+              key: POSTGRES_PASSWORD
+        - name: RABBITMQ_USER
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: RABBITMQ_USER
+        - name: RABBITMQ_PASS
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: RABBITMQ_PASS

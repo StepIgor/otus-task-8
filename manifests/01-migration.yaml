@@ -34,7 +34,8 @@ spec:
             GoodID INT NOT NULL,
             DeliveryDate DATE NOT NULL,
             DeliveryHour INT NOT NULL,
-            Status VARCHAR(16) NOT NULL
+            Status VARCHAR(16) NOT NULL,
+            Comment VARCHAR(128)
           );"
           migrations[goodspostgresql]="
           CREATE TABLE IF NOT EXISTS goods (
