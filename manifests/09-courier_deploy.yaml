@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: courier-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: courier-deploy
+  template:
+    metadata:
+      labels:
+        app: courier-deploy
+    spec:
+      containers:
+      - name: courier-deploy
+        image: stepigor/ot8courier:arm
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: courier-config
+              key: DB_HOST
+        - name: DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: courier-config
+              key: DB_USER
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: courier-config
+              key: DB_NAME
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: courier-config
+              key: DB_PORT
+        - name: APP_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: courier-config
+              key: APP_PORT
+        - name: DB_PSWD
+          valueFrom:
+            secretKeyRef:
+              name: db-password
+              key: POSTGRES_PASSWORD
+        - name: RABBITMQ_USER
+          valueFrom:
+            configMapKeyRef:
+              name: courier-config
+              key: RABBITMQ_USER
+        - name: RABBITMQ_PASS
+          valueFrom:
+            configMapKeyRef:
+              name: courier-config
+              key: RABBITMQ_PASS

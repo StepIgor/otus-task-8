@@ -43,7 +43,14 @@ spec:
             Name VARCHAR(128) NOT NULL,
             Price INT NOT NULL,
             OccupierID INT
-          );"
+          );
+          INSERT INTO goods (name, price) VALUES
+            ('laptop', 250),
+            ('computer', 200),
+            ('smartphone', 150),
+            ('watch', 100),
+            ('tablet', 200)
+          ;"
           migrations[billingpostgresql]="
           CREATE TABLE IF NOT EXISTS accounts (
             UserID INT NOT NULL,

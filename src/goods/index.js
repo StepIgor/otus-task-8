@@ -53,23 +53,49 @@ async function publishToQueue(queue, message) {
   }
 }
 
-// Чтение сообщений от сервиса Courier (отмена/подтверждение заказа)
-// Меняем статус заказа на окончательный (pending -> cancelled/accepted)
+// Чтение сообщений от сервиса Courier (продолжение цепочки обработки заказа)
+// Бронируем товар и передаём запрос списание в Billing или отказываем и сообщаем обратно Courier
 async function consumeCourierMessages() {
   try {
     const connection = await amqp.connect(RABBIT_URL);
     const channel = await connection.createChannel();
-    await channel.assertQueue("orders_order_cancellation", { durable: true });
-    channel.consume("orders_order_cancellation", async (msg) => {
-      // отказ (нет курьера/товара/денег), уводим заказ в cancelled
+    await channel.assertQueue("goods_order_creation", { durable: true });
+    channel.consume("goods_order_creation", async (msg) => {
       if (!msg) {
         return;
       }
       const msgContent = JSON.parse(msg.content.toString());
-      await pool.query(
-        "UPDATE orders SET status = $2, comment = $3 WHERE id = $1",
-        [msgContent.orderId, "cancelled", msgContent.reason]
-      );
+      const good = await pool
+        .query("SELECT * FROM goods WHERE id = $1", [msgContent.goodId])
+        .then((res) => res.rows[0]);
+      if (!good) {
+        // такого товара нет в базе, отказ
+        publishToQueue("courier_order_cancellation", {
+          orderId: msgContent.orderId,
+          reason: "Товар не обнаружен на складе",
+        });
+        channel.ack(msg);
+        return;
+      }
+      if (good.occupierid) {
+        // товар уже зарезервирован по другому заказу, отказ
+        publishToQueue("courier_order_cancellation", {
+          orderId: msgContent.orderId,
+          reason: "Товар уже зарезервирован другим заказом",
+        });
+        channel.ack(msg);
+        return;
+      }
+      // всё ок, товар есть и свободен, делаем резерв
+      await pool.query("UPDATE goods SET occupierid = $2 WHERE id = $1", [
+        msgContent.goodId,
+        msgContent.userId,
+      ]);
+      // сообщаем Billing, что нужно попытаться списать средства за товар
+      publishToQueue("billing_order_creation", {
+        userId: msgContent.userId,
+        price: good.price,
+      });
       channel.ack(msg);
     });
   } catch (err) {
@@ -78,51 +104,12 @@ async function consumeCourierMessages() {
 }
 
 // ROUTES
-app.post("/orders", authenticateToken, async (req, res) => {
-  // заведение заказа
-  const [userId, goodId, deliveryDate, deliveryHour] = [
-    req.user.id,
-    req.body.goodId,
-    req.body.deliveryDate,
-    req.body.deliveryHour,
-  ];
-  if (!userId || !goodId || !deliveryDate || !deliveryHour) {
-    return res.status(400).json({
-      error: "Проверьте указание goodId, deliveryDate и deliveryHour",
-    });
-  }
+app.get("/goods", authenticateToken, async (req, res) => {
   try {
-    // заведение заказа в статусе pending
-    const newOrder = await pool
-      .query(
-        "INSERT INTO orders (UserID, goodID, DeliveryDate, DeliveryHour, Status, Comment) VALUES ($1, $2, $3, $4, 'pending', 'Идёт проверка свободной доставки, наличия товара, достатка денежных средств') RETURNING *",
-        [userId, goodId, deliveryDate, deliveryHour]
-      )
-      .then((res) => res.rows[0]);
-    // генерация сообщения для сервиса Courier
-    publishToQueue("courier_new_order", {
-      newOrderId: newOrder.id,
-      deliveryDate: newOrder.deliverydate,
-      deliveryHour: newOrder.deliveryhour,
-      goodId: newOrder.goodid,
-      userId: userId,
-    });
-    res.status(201).json(newOrder);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Внутренняя ошибка сервера" });
-  }
-});
-
-app.get("/orders", authenticateToken, async (req, res) => {
-  const userId = req.user.id;
-  try {
-    const orders = await pool
-      .query("SELECT * FROM orders WHERE UserID = $1 ORDER BY ID DESC", [
-        userId,
-      ])
+    const goods = await pool
+      .query("SELECT * FROM goods WHERE occupierid is null ORDER BY id DESC")
       .then((res) => res.rows);
-    res.status(200).json(orders);
+    res.status(200).json(goods);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Внутренняя ошибка сервера" });

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: courier-config
+data:
+  DB_USER: "postgres"
+  DB_HOST: "courierpostgresql"
+  DB_NAME: "db"
+  DB_PORT: "5432"
+  APP_PORT: "8080"
+  RABBITMQ_USER: "rabbitUser"
+  RABBITMQ_PASS: "rabbitPswd"
