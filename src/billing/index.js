@@ -53,23 +53,21 @@ async function publishToQueue(queue, message) {
   }
 }
 
-// Чтение сообщений от сервиса Courier (если отмена заказа)
-// Меняем статус заказа на окончательный (pending -> cancelled)
-async function consumeCourierMessages() {
+// Чтение сообщений от сервиса Orders (открытие пустого счета на нового клиента)
+// Добавляем запись с нулевым балансом
+async function consumeOrdersMessages() {
   try {
     const connection = await amqp.connect(RABBIT_URL);
     const channel = await connection.createChannel();
-    await channel.assertQueue("orders_order_cancellation", { durable: true });
-    channel.consume("orders_order_cancellation", async (msg) => {
-      // отказ (нет курьера/товара/денег), уводим заказ в cancelled
+    await channel.assertQueue("billing_new_account", { durable: true });
+    channel.consume("billing_new_account", async (msg) => {
       if (!msg) {
         return;
       }
       const msgContent = JSON.parse(msg.content.toString());
-      await pool.query(
-        "UPDATE orders SET status = $2, comment = $3 WHERE id = $1",
-        [msgContent.orderId, "cancelled", msgContent.reason]
-      );
+      await pool.query("INSERT INTO accounts (userid, amount) VALUES ($1, 0)", [
+        msgContent.newUserId,
+      ]);
       channel.ack(msg);
     });
   } catch (err) {
@@ -77,26 +75,40 @@ async function consumeCourierMessages() {
   }
 }
 
-// Чтение сообщений от сервиса Billing (успех по заказу)
-// Меняем статус заказа на окончательный (pending -> accepted)
-async function consumeBillingMessages() {
+// Чтение сообщений от сервиса Goods (заключительное звено цепочки обработки заказа)
+// Пытаемся списать денежные средства
+async function consumeGoodsMessages() {
   try {
     const connection = await amqp.connect(RABBIT_URL);
     const channel = await connection.createChannel();
-    await channel.assertQueue("orders_order_acception", { durable: true });
-    channel.consume("orders_order_acception", async (msg) => {
+    await channel.assertQueue("billing_order_creation", { durable: true });
+    channel.consume("billing_order_creation", async (msg) => {
       if (!msg) {
         return;
       }
       const msgContent = JSON.parse(msg.content.toString());
+      const userAccount = await pool
+        .query("SELECT amount FROM accounts WHERE userid = $1", [
+          msgContent.userId,
+        ])
+        .then((res) => res.rows[0]);
+      const currentBalance = userAccount?.amount || 0;
+      if (currentBalance < msgContent.price) {
+        publishToQueue("goods_order_cancellation", {
+          orderId: msgContent.orderId,
+          goodId: msgContent.goodId,
+          reason: "Недостаточно средств на балансе пользователя",
+        });
+        channel.ack(msg);
+        return;
+      }
       await pool.query(
-        "UPDATE orders SET status = $2, comment = $3 WHERE id = $1",
-        [
-          msgContent.orderId,
-          "accepted",
-          "Успех! Время забронировано, товар зарезервирован, деньги списаны! Передаём в доставку!",
-        ]
+        "UPDATE accounts SET amount = amount - $2 WHERE userId = $1",
+        [msgContent.userId, msgContent.price]
       );
+      publishToQueue("orders_order_acception", {
+        orderId: msgContent.orderId,
+      });
       channel.ack(msg);
     });
   } catch (err) {
@@ -105,51 +117,38 @@ async function consumeBillingMessages() {
 }
 
 // ROUTES
-app.post("/orders", authenticateToken, async (req, res) => {
-  // заведение заказа
-  const [userId, goodId, deliveryDate, deliveryHour] = [
-    req.user.id,
-    req.body.goodId,
-    req.body.deliveryDate,
-    req.body.deliveryHour,
-  ];
-  if (!userId || !goodId || !deliveryDate || !deliveryHour) {
-    return res.status(400).json({
-      error: "Проверьте указание goodId, deliveryDate и deliveryHour",
-    });
+app.post("/topup", authenticateToken, async (req, res) => {
+  const [userId, amount] = [req.user.id, req.body.amount];
+  if (!userId || !amount) {
+    res.status(400).json({ error: "Не все данные указаны (userId, amount)" });
+    return;
   }
   try {
-    // заведение заказа в статусе pending
-    const newOrder = await pool
-      .query(
-        "INSERT INTO orders (UserID, goodID, DeliveryDate, DeliveryHour, Status, Comment) VALUES ($1, $2, $3, $4, 'pending', 'Идёт проверка свободной доставки, наличия товара, достатка денежных средств') RETURNING *",
-        [userId, goodId, deliveryDate, deliveryHour]
-      )
-      .then((res) => res.rows[0]);
-    // генерация сообщения для сервиса Courier
-    publishToQueue("courier_new_order", {
-      newOrderId: newOrder.id,
-      deliveryDate: newOrder.deliverydate,
-      deliveryHour: newOrder.deliveryhour,
-      goodId: newOrder.goodid,
-      userId: userId,
-    });
-    res.status(201).json(newOrder);
+    const queryResult = await pool.query(
+      "SELECT amount FROM accounts WHERE userid = $1",
+      [userId]
+    );
+    if (!queryResult?.rows?.length) {
+      res.status(404).json({ error: "Аккаунта пополнения не существует" });
+      return;
+    }
+    const newAmountData = await pool.query(
+      "UPDATE accounts SET amount = amount + $1 WHERE userid = $2 RETURNING *",
+      [amount, userId]
+    );
+    res.status(200).json(newAmountData.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Внутренняя ошибка сервера" });
   }
 });
 
-app.get("/orders", authenticateToken, async (req, res) => {
-  const userId = req.user.id;
+app.get("/balance", authenticateToken, async (req, res) => {
   try {
-    const orders = await pool
-      .query("SELECT * FROM orders WHERE UserID = $1 ORDER BY ID DESC", [
-        userId,
-      ])
-      .then((res) => res.rows);
-    res.status(200).json(orders);
+    const amount = await pool
+      .query("SELECT amount FROM accounts WHERE userid = $1", [req.user.id])
+      .then((res) => res.rows[0].amount);
+    res.status(200).json({ amount });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Внутренняя ошибка сервера" });
@@ -162,5 +161,5 @@ app.listen(PORT, () => {
   console.log(`Сервис запущен на http://localhost:${PORT}`);
 });
 
-consumeCourierMessages();
-consumeBillingMessages();
+consumeOrdersMessages();
+consumeGoodsMessages();

@@ -94,7 +94,35 @@ async function consumeCourierMessages() {
       // сообщаем Billing, что нужно попытаться списать средства за товар
       publishToQueue("billing_order_creation", {
         userId: msgContent.userId,
+        orderId: msgContent.orderId,
+        goodId: msgContent.goodId,
         price: good.price,
+      });
+      channel.ack(msg);
+    });
+  } catch (err) {
+    console.error("Ошибка при подключении к RabbitMQ:", err.message);
+  }
+}
+
+// Чтение сообщений от сервиса Billing (отмена заказа из-за нехватки средств)
+// Снимаем бронь с товара, передаем эстафету Courier
+async function consumeBillingMessages() {
+  try {
+    const connection = await amqp.connect(RABBIT_URL);
+    const channel = await connection.createChannel();
+    await channel.assertQueue("goods_order_cancellation", { durable: true });
+    channel.consume("goods_order_cancellation", async (msg) => {
+      if (!msg) {
+        return;
+      }
+      const msgContent = JSON.parse(msg.content.toString());
+      await pool.query("UPDATE goods SET occupierid = null WHERE id = $1", [
+        msgContent.goodId,
+      ]);
+      publishToQueue("courier_order_cancellation", {
+        orderId: msgContent.orderId,
+        reason: msgContent.reason,
       });
       channel.ack(msg);
     });
@@ -123,3 +151,4 @@ app.listen(PORT, () => {
 });
 
 consumeCourierMessages();
+consumeBillingMessages();
