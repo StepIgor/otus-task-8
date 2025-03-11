@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: auth-deploy
-        image: stepigor/ot8auth:arm
+        image: stepigor/ot8auth:latest
         ports:
         - containerPort: 8080
         env:

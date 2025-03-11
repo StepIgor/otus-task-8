@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: courier-deploy
-        image: stepigor/ot8courier:arm
+        image: stepigor/ot8courier:latest
         ports:
         - containerPort: 8080
         env:

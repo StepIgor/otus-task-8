@@ -1,0 +1,1014 @@
+{
+	"info": {
+		"_postman_id": "6bb422b2-5109-4cbe-8c9f-9648a6b16f89",
+		"name": "Otus 008 auto",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "25405563"
+	},
+	"item": [
+		{
+			"name": "01. Регистрация нового пользователя",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"console.log(\"Request Body:\", pm.request.body.raw);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());",
+							"",
+							"",
+							"console.log('Ожидаем 7 сек., пока Billing Service откроет пустой счёт (RabbitMQ)...');",
+							"pm.test('', (done) => {",
+							"    setTimeout(() => {done();}, 7000);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"{{name}}\",\n    \"password\": \"{{password}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/auth/register",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"auth",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "02. Аутентификация под новым пользователем",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"console.log(\"Request Body:\", pm.request.body.raw);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());",
+							"console.log(\"Токен запомнили\");",
+							"pm.collectionVariables.set(\"token\", pm.response.json().token);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"{{name}}\",\n    \"password\": \"{{password}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/auth/login",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "03. Проверим пустой баланс",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/billing/balance",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"billing",
+						"balance"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "04. Пополним свой счёт",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"console.log(\"Request Body:\", pm.request.body.raw);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"amount\": 500\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/billing/topup",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"billing",
+						"topup"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "05. Просмотрим список доступных товаров для заказа",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());",
+							"",
+							"console.log(\"Запланируем заказ tablet (goodId = 5) за 200 у.е.\");"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/goods/goods",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"goods",
+						"goods"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "06. Сейчас у нас заказов нет",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "07. Заказываем tablet (успех)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"console.log(\"Request Body:\", pm.request.body.raw);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());",
+							"",
+							"console.log('Ожидаем 10 сек., пока успешно пройдёт цепочка Orders -> Courier -> Goods -> Billing -> Orders Services (RabbitMQ) для получения по заказу Accepted...');",
+							"pm.test('', (done) => {",
+							"    setTimeout(() => {done();}, 10000);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"goodId\": 5,\n    \"deliveryDate\": \"2025-03-10\",\n    \"deliveryHour\": 12\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "08. Смотрим Accepted-заказ",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "09. Видим, что купленный товар исчез из пула свободных",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/goods/goods",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"goods",
+						"goods"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "10. Пытаемся заказать другой товар на то же время (неудача)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"console.log(\"Request Body:\", pm.request.body.raw);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());",
+							"",
+							"console.log('Ожидаем 10 сек., пока НЕ пройдёт цепочка Orders -> Courier(отказ!) -> Orders Services (RabbitMQ) для получения по заказу Cancelled...');",
+							"pm.test('', (done) => {",
+							"    setTimeout(() => {done();}, 10000);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"goodId\": 4,\n    \"deliveryDate\": \"2025-03-10\",\n    \"deliveryHour\": 12\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "11. Смотрим Cancelled-заказ (см. Comment - то же время)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "12. Пытаемся заказать тот же товар (неудача)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"console.log(\"Request Body:\", pm.request.body.raw);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());",
+							"",
+							"console.log('Ожидаем 10 сек., пока НЕ пройдёт цепочка Orders -> Courier -> Goods(отказ!) -> Courier -> Orders Services (RabbitMQ) для получения по заказу Cancelled...');",
+							"pm.test('', (done) => {",
+							"    setTimeout(() => {done();}, 10000);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"goodId\": 5,\n    \"deliveryDate\": \"2025-03-10\",\n    \"deliveryHour\": 13\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "13. Смотрим Cancelled-заказ (см. Comment - тот же товар)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "14. Пытаемся заказать несуществующий товар (неудача)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"console.log(\"Request Body:\", pm.request.body.raw);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());",
+							"",
+							"",
+							"console.log('Ожидаем 10 сек., пока НЕ пройдёт цепочка Orders -> Courier -> Goods(отказ!) -> Courier -> Orders Services (RabbitMQ) для получения по заказу Cancelled...');",
+							"pm.test('', (done) => {",
+							"    setTimeout(() => {done();}, 10000);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"goodId\": 55,\n    \"deliveryDate\": \"2025-03-10\",\n    \"deliveryHour\": 13\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "15. Смотрим Cancelled-заказ (см. Comment - несуществующий товар)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "16. Заказываем laptop (успех)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"console.log(\"Request Body:\", pm.request.body.raw);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());",
+							"",
+							"console.log('Ожидаем 10 сек., пока успешно пройдёт цепочка Orders -> Courier -> Goods -> Billing -> Orders Services (RabbitMQ) для получения по заказу Accepted...');",
+							"pm.test('', (done) => {",
+							"    setTimeout(() => {done();}, 10000);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"goodId\": 1,\n    \"deliveryDate\": \"2025-03-10\",\n    \"deliveryHour\": 13\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "17. Смотрим Accepted-заказ",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "18. Проверим маленький баланс",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/billing/balance",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"billing",
+						"balance"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "19. Пытаемся заказать слишкой дорогой товар (неудача)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"console.log(\"Request Body:\", pm.request.body.raw);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());",
+							"",
+							"",
+							"console.log('Ожидаем 10 сек., пока НЕ пройдёт цепочка Orders -> Courier -> Goods -> Billing (отказ!) -> Goods -> Courier -> Orders Services (RabbitMQ) для получения по заказу Cancelled...');",
+							"pm.test('', (done) => {",
+							"    setTimeout(() => {done();}, 10000);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"goodId\": 2,\n    \"deliveryDate\": \"2025-03-10\",\n    \"deliveryHour\": 15\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "20. Смотрим Cancelled-заказ (см. Comment - не хватает денег)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "arch.homework",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "name",
+			"value": "user001",
+			"type": "string"
+		},
+		{
+			"key": "password",
+			"value": "pswd001",
+			"type": "string"
+		}
+	]
+}

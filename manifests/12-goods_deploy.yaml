@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: goods-deploy
-        image: stepigor/ot8goods:arm
+        image: stepigor/ot8goods:latest
         ports:
         - containerPort: 8080
         env:
