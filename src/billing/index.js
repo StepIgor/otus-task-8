@@ -87,7 +87,22 @@ async function consumeGoodsMessages() {
         return;
       }
       const msgContent = JSON.parse(msg.content.toString());
-      const userAccount = await pool
+      const dbClient = await pool.connect();
+      const isAlreadyCharged = await dbClient
+        .query("SELECT amount FROM operations WHERE orderid = $1", [
+          msgContent.orderId,
+        ])
+        .then((res) => Boolean(res.rows.length));
+      if (isAlreadyCharged) {
+        // сообщение обрабатывается повторно, деньги уже списали, остановка
+        console.log(
+          `Предотвращена попытка повторного списания в рамках заказа ${msgContent.orderId}`
+        );
+        channel.ack(msg);
+        dbClient.release();
+        return;
+      }
+      const userAccount = await dbClient
         .query("SELECT amount FROM accounts WHERE userid = $1", [
           msgContent.userId,
         ])
@@ -100,15 +115,23 @@ async function consumeGoodsMessages() {
           reason: "Недостаточно средств на балансе пользователя",
         });
         channel.ack(msg);
+        dbClient.release();
         return;
       }
-      await pool.query(
+      await dbClient.query("BEGIN"); // начало транзакции
+      await dbClient.query(
         "UPDATE accounts SET amount = amount - $2 WHERE userId = $1",
         [msgContent.userId, msgContent.price]
+      );
+      await dbClient.query(
+        "INSERT into operations (orderid, amount) VALUES ($1, $2)",
+        [msgContent.orderId, msgContent.price]
       );
       publishToQueue("orders_order_acception", {
         orderId: msgContent.orderId,
       });
+      await dbClient.query("COMMIT"); // окончание транзакции
+      dbClient.release();
       channel.ack(msg);
     });
   } catch (err) {

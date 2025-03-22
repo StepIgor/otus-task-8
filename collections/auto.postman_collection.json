@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "6bb422b2-5109-4cbe-8c9f-9648a6b16f89",
+		"_postman_id": "521af5ba-1503-4332-a6c2-fb1fe5bce38b",
 		"name": "Otus 008 auto",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "25405563"
@@ -306,6 +306,114 @@
 							"pm.test('', (done) => {",
 							"    setTimeout(() => {done();}, 10000);",
 							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"goodId\": 5,\n    \"deliveryDate\": \"2025-03-10\",\n    \"deliveryHour\": 12\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "07. Заказываем tablet (успех) Copy",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"console.log(\"Request Body:\", pm.request.body.raw);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());",
+							"",
+							"console.log(\"Видим в ответе 200 (OK), а не 201 (Created), как было при первой попытке заведения заказа. Т.е. заказ не был создан заново, а лишь вернулся единственный оригинал из БД\");"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"goodId\": 5,\n    \"deliveryDate\": \"2025-03-10\",\n    \"deliveryHour\": 12\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/orders/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "07. Заказываем tablet (успех) Copy 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Логирование данных запроса",
+							"console.log(\"Request URL:\", pm.request.url.toString());",
+							"console.log(\"Request Method:\", pm.request.method);",
+							"console.log(\"Request Body:\", pm.request.body.raw);",
+							"",
+							"// Логирование данных ответа",
+							"console.log(\"Response Status:\", pm.response.status);",
+							"console.log(\"Response Body:\", pm.response.text());",
+							"",
+							"console.log(\"Снова видим в ответе 200 (OK), а не 201 (Created), как было при первой попытке заведения заказа. Т.е. заказ не был создан заново, а лишь вернулся единственный оригинал из БД\");"
 						],
 						"type": "text/javascript",
 						"packages": {}

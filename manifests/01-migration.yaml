@@ -36,7 +36,13 @@ spec:
             DeliveryHour INT NOT NULL,
             Status VARCHAR(16) NOT NULL,
             Comment VARCHAR(128)
-          );"
+          );
+          CREATE TABLE IF NOT EXISTS fingerprints (
+            FingerPrint CHAR(64),
+            OrderID INT,
+            PRIMARY KEY (OrderID, FingerPrint)
+          );
+          "
           migrations[goodspostgresql]="
           CREATE TABLE IF NOT EXISTS goods (
             ID INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -55,7 +61,12 @@ spec:
           CREATE TABLE IF NOT EXISTS accounts (
             UserID INT NOT NULL,
             Amount INT NOT NULL
-          );"
+          );
+          CREATE TABLE IF NOT EXISTS operations (
+            OrderID INT PRIMARY KEY,
+            Amount INT NOT NULL
+          );
+          "
           migrations[courierpostgresql]="
           CREATE TABLE IF NOT EXISTS requests (
             OrderID INT NOT NULL,

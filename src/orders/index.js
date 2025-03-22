@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
 const amqp = require("amqplib");
+const crypto = require("crypto");
 
 const app = express();
 app.use(bodyParser.json());
@@ -104,6 +105,14 @@ async function consumeBillingMessages() {
   }
 }
 
+// генерация FingerPrint для нового заказа с клиента
+function generateFingerprint(userId, goodId, deliveryDate, deliveryHour) {
+  return crypto
+    .createHash("sha256")
+    .update(`${userId}-${goodId}-${deliveryDate}-${deliveryHour}`)
+    .digest("hex");
+}
+
 // ROUTES
 app.post("/orders", authenticateToken, async (req, res) => {
   // заведение заказа
@@ -118,9 +127,32 @@ app.post("/orders", authenticateToken, async (req, res) => {
       error: "Проверьте указание goodId, deliveryDate и deliveryHour",
     });
   }
+  const dbClient = await pool.connect();
   try {
+    const fingerPrint = generateFingerprint(
+      userId,
+      goodId,
+      deliveryDate,
+      deliveryHour
+    );
+    const existingFingerPrint = await dbClient
+      .query("SELECT orderid FROM fingerprints WHERE fingerprint = $1", [
+        fingerPrint,
+      ])
+      .then((res) => res.rows[0]);
+    if (existingFingerPrint) {
+      // Заказ уже создан пользователем ранее
+      const existingOrder = await dbClient.query(
+        "SELECT * FROM orders WHERE id = $1",
+        [existingFingerPrint.orderid]
+      ).then(res => res.rows);
+      // Отдаём 200, а не 201, как обычно, чтобы клиент понял, что заказ не задублировался
+      return res.status(200).json(existingOrder);
+    }
+
     // заведение заказа в статусе pending
-    const newOrder = await pool
+    await dbClient.query("BEGIN"); // начинаем транзакцию
+    const newOrder = await dbClient
       .query(
         "INSERT INTO orders (UserID, goodID, DeliveryDate, DeliveryHour, Status, Comment) VALUES ($1, $2, $3, $4, 'pending', 'Идёт проверка свободной доставки, наличия товара, достатка денежных средств') RETURNING *",
         [userId, goodId, deliveryDate, deliveryHour]
@@ -134,10 +166,19 @@ app.post("/orders", authenticateToken, async (req, res) => {
       goodId: newOrder.goodid,
       userId: userId,
     });
-    res.status(201).json(newOrder);
+    // регистрация fingerprint
+    await dbClient.query(
+      "INSERT INTO fingerprints (fingerprint, orderid) VALUES ($1, $2)",
+      [fingerPrint, newOrder.id]
+    );
+    await dbClient.query("COMMIT"); // закрыть транзакцию
+    return res.status(201).json(newOrder);
   } catch (err) {
+    await dbClient.query("ROLLBACK"); // откат транзакции
     console.error(err);
     res.status(500).json({ error: "Внутренняя ошибка сервера" });
+  } finally {
+    dbClient.release(); // освобождаем клиент
   }
 });
 
